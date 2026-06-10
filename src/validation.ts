@@ -1,5 +1,5 @@
 import type {
-  // IPlugin,
+  IPlugin,
   // PluginConst,
   PluginInput,
   PluginMetadata,
@@ -67,14 +67,28 @@ function validateMetadata(obj: Record<string, unknown>): void {
 export function validatePlugin(plugin: PluginInput): void {
   if (typeof plugin === "function") {
     const proto = (plugin as Function).prototype;
-    if (!proto?.metadata) {
-      throw new PluginValidationError(
-        "Class plugin must have metadata in prototype",
-      );
+    if (proto && typeof proto === "object" && "metadata" in proto) {
+      validateMetadata(proto as Record<string, unknown>);
+      validateHooks(proto.metadata.name, proto as Record<string, unknown>);
+      return;
     }
-    validateMetadata(proto as Record<string, unknown>);
-    validateHooks(proto.metadata.name, proto as Record<string, unknown>);
-    return;
+
+    try {
+      const instance = new (plugin as new () => IPlugin)();
+      if (typeof instance === "object" && instance !== null && "metadata" in instance) {
+        const p = instance as unknown as Record<string, unknown>;
+        validateMetadata(p);
+        const metadata = p.metadata as PluginMetadata;
+        validateHooks(metadata.name, p);
+        return;
+      }
+    } catch {
+      // instantiation failed, fall through to error
+    }
+
+    throw new PluginValidationError(
+      "Class plugin must have metadata in prototype or instance",
+    );
   }
 
   if (typeof plugin === "object" && plugin !== null) {

@@ -15,15 +15,19 @@ export async function loadPluginFromFile(
 export async function loadPluginsFromDir(
   dir: string | URL,
 ): Promise<PluginInput[]> {
-  const dirStr = dir instanceof URL ? dir.href : resolve(dir);
+  const dirPath = dir instanceof URL ? dir.pathname : resolve(dir);
   const plugins: PluginInput[] = [];
-  for await (const entry of Deno.readDir(dirStr)) {
+  for await (const entry of Deno.readDir(dirPath)) {
     if (!entry.isFile) continue;
     if (!entry.name.endsWith(".ts") && !entry.name.endsWith(".js")) continue;
 
-    const filePath = `${dirStr}/${entry.name}`;
-    const plugin = await loadPluginFromFile(filePath);
-    plugins.push(plugin);
+    const filePath = `${dirPath}/${entry.name}`;
+    try {
+      const plugin = await loadPluginFromFile(filePath);
+      plugins.push(plugin);
+    } catch {
+      // skip invalid plugins
+    }
   }
   return plugins;
 }

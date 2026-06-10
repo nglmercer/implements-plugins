@@ -21,7 +21,7 @@ export type PluginConst = {
   onUnload?: () => void | Promise<void>;
 };
 
-export type PluginInput = IPlugin | PluginConst;
+export type PluginInput = IPlugin | PluginConst | (new () => IPlugin);
 
 export interface PluginManagerOptions {
   // extensible later

@@ -74,7 +74,11 @@ export class PluginManager {
   private getMetadata(plugin: PluginInput): { name: string; version: string } {
     if (typeof plugin === "function") {
       const proto = (plugin as Function).prototype;
-      return proto.metadata;
+      if (proto && typeof proto === "object" && "metadata" in proto) {
+        return proto.metadata;
+      }
+      const instance = new (plugin as new () => IPlugin)();
+      return (instance as unknown as PluginConst).metadata;
     }
     return (plugin as IPlugin | PluginConst).metadata;
   }
