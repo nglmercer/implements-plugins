@@ -11,7 +11,9 @@
     "lib": ["deno.ns", "deno.window"]
   },
   "tasks": {
-    "test": "deno test",
-    "test:coverage": "deno test --coverage"
+    "test": "deno test --allow-read --allow-env",
+    "test:coverage": "deno test --allow-read --allow-env --coverage",
+    "server": "deno run --allow-net --allow-read --allow-env examples/web-server.ts",
+    "client": "deno run --allow-net examples/fetch-plugin.ts"
   }
 }

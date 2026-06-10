@@ -12,6 +12,16 @@ export async function loadPluginFromFile(
   return plugin as PluginInput;
 }
 
+export async function loadPluginFromUrl(
+  url: string | URL,
+): Promise<PluginInput> {
+  const urlStr = url instanceof URL ? url.href : url;
+  const mod = await import(urlStr);
+  const plugin = mod.default ?? mod.plugin ?? mod;
+  validatePlugin(plugin as PluginInput);
+  return plugin as PluginInput;
+}
+
 export async function loadPluginsFromDir(
   dir: string | URL,
 ): Promise<PluginInput[]> {
