@@ -1,4 +1,4 @@
-import { PluginManager, type IPlugin } from "../mod.ts";
+import type { IPlugin } from "../mod.ts";
 
 class TimePlugin implements IPlugin {
   readonly metadata = { name: "time", version: "1.0.0" };

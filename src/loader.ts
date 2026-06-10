@@ -1,6 +1,6 @@
 import type { PluginInput } from "./types.ts";
 import { validatePlugin } from "./validation.ts";
-import { resolve } from "jsr:@std/path";
+import { resolve } from "@std/path";
 
 export async function loadPluginFromFile(
   path: string | URL,

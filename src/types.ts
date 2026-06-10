@@ -23,6 +23,4 @@ export type PluginConst = {
 
 export type PluginInput = IPlugin | PluginConst | (new () => IPlugin);
 
-export interface PluginManagerOptions {
-  // extensible later
-}
+export type PluginManagerOptions = Record<string, unknown>;

@@ -136,13 +136,13 @@ const router = {
     return jsonResponse({ time: time?.now() });
   },
 
-  "POST /math/add": async (params: Record<string, string>, body: Record<string, unknown>) => {
+  "POST /math/add": (_params: Record<string, string>, body: Record<string, unknown>) => {
     const math = manager.getPlugin("math") as { add(a: number, b: number): number };
     const { a = 0, b = 0 } = body;
     return jsonResponse({ result: math?.add(a as number, b as number) });
   },
 
-  "POST /math/multiply": async (params: Record<string, string>, body: Record<string, unknown>) => {
+  "POST /math/multiply": (_params: Record<string, string>, body: Record<string, unknown>) => {
     const math = manager.getPlugin("math") as { multiply(a: number, b: number): number };
     const { a = 1, b = 1 } = body;
     return jsonResponse({ result: math?.multiply(a as number, b as number) });

@@ -1,4 +1,4 @@
-import { PluginManager, loadPluginFromUrl, type PluginInput, type IPlugin } from "../mod.ts";
+import { PluginManager, loadPluginFromUrl, type PluginInput } from "../mod.ts";
 
 const SERVER_URL = "http://localhost:8000";
 

@@ -66,10 +66,11 @@ function validateMetadata(obj: Record<string, unknown>): void {
 
 export function validatePlugin(plugin: PluginInput): void {
   if (typeof plugin === "function") {
-    const proto = (plugin as Function).prototype;
+    const proto = (plugin as { prototype?: Record<string, unknown> }).prototype;
     if (proto && typeof proto === "object" && "metadata" in proto) {
       validateMetadata(proto as Record<string, unknown>);
-      validateHooks(proto.metadata.name, proto as Record<string, unknown>);
+      const metadata = proto.metadata as PluginMetadata;
+      validateHooks(metadata.name, proto as Record<string, unknown>);
       return;
     }
 

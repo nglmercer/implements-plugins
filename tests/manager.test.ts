@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects, assertThrows } from "jsr:@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { PluginManager } from "../src/manager.ts";
 import type { IPlugin, PluginConst } from "../src/types.ts";
 

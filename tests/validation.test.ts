@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { validatePlugin, PluginValidationError } from "../src/validation.ts";
 import type { IPlugin, PluginConst } from "../src/types.ts";
 

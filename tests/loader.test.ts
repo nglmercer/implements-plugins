@@ -1,13 +1,13 @@
-import { assertEquals, assertRejects } from "jsr:@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { loadPluginFromFile, loadPluginsFromDir } from "../src/loader.ts";
-import { resolve } from "jsr:@std/path";
+import { resolve } from "@std/path";
 import type { PluginInput, IPlugin } from "../src/types.ts";
 
 const FIXTURES = resolve(import.meta.dirname!, "fixtures");
 
 function getMetadata(plugin: PluginInput): { name: string; version: string } {
   if (typeof plugin === "function") {
-    return (plugin as Function).prototype.metadata;
+    return (plugin as { prototype: { metadata: { name: string; version: string } } }).prototype.metadata;
   }
   return (plugin as IPlugin).metadata;
 }
