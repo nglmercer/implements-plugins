@@ -1,9 +1,13 @@
-export { PluginManager } from "./manager.ts";
-export { PluginValidationError, validatePlugin } from "./validation.ts";
+export { PluginManager } from "./src/manager.ts";
+export { PluginValidationError, validatePlugin } from "./src/validation.ts";
+export {
+  loadPluginFromFile,
+  loadPluginsFromDir,
+} from "./src/loader.ts";
 export type {
   IPlugin,
   PluginConst,
   PluginInput,
   PluginManagerOptions,
   PluginMetadata,
-} from "./types.ts";
+} from "./src/types.ts";

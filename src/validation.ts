@@ -1,6 +1,6 @@
 import type {
-  IPlugin,
-  PluginConst,
+  // IPlugin,
+  // PluginConst,
   PluginInput,
   PluginMetadata,
 } from "./types.ts";
@@ -15,33 +15,34 @@ export class PluginValidationError extends Error {
 function isValidMetadata(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const m = value as Record<string, unknown>;
-  return typeof m.name === "string" && m.name.length > 0 &&
-    typeof m.version === "string" && m.version.length > 0;
+  return (
+    typeof m.name === "string" &&
+    m.name.length > 0 &&
+    typeof m.version === "string" &&
+    m.version.length > 0
+  );
 }
 
-function isClassPlugin(value: unknown): value is IPlugin {
-  if (!value) return false;
-  if (typeof value === "function") {
-    const proto = (value as Function).prototype;
-    return proto && typeof proto === "object" && "metadata" in proto;
-  }
-  if (typeof value === "object") {
-    const p = value as Record<string, unknown>;
-    return "metadata" in p && isValidMetadata(p.metadata);
-  }
-  return false;
-}
+// function isClassPlugin(value: unknown): value is IPlugin {
+//   if (!value) return false;
+//   if (typeof value === "function") {
+//     const proto = (value as Function).prototype;
+//     return proto && typeof proto === "object" && "metadata" in proto;
+//   }
+//   if (typeof value === "object") {
+//     const p = value as Record<string, unknown>;
+//     return "metadata" in p && isValidMetadata(p.metadata);
+//   }
+//   return false;
+// }
 
-function isConstPlugin(value: unknown): value is PluginConst {
-  if (!value || typeof value !== "object") return false;
-  const p = value as Record<string, unknown>;
-  return "metadata" in p && isValidMetadata(p.metadata);
-}
+// function isConstPlugin(value: unknown): value is PluginConst {
+//   if (!value || typeof value !== "object") return false;
+//   const p = value as Record<string, unknown>;
+//   return "metadata" in p && isValidMetadata(p.metadata);
+// }
 
-function validateHooks(
-  name: string,
-  obj: Record<string, unknown>,
-): void {
+function validateHooks(name: string, obj: Record<string, unknown>): void {
   const hooks = ["setup", "onLoad", "onEnable", "onDisable", "onUnload"];
   for (const hook of hooks) {
     if (hook in obj && typeof obj[hook] !== "function") {
@@ -67,7 +68,9 @@ export function validatePlugin(plugin: PluginInput): void {
   if (typeof plugin === "function") {
     const proto = (plugin as Function).prototype;
     if (!proto?.metadata) {
-      throw new PluginValidationError("Class plugin must have metadata in prototype");
+      throw new PluginValidationError(
+        "Class plugin must have metadata in prototype",
+      );
     }
     validateMetadata(proto as Record<string, unknown>);
     validateHooks(proto.metadata.name, proto as Record<string, unknown>);
