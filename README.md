@@ -6,6 +6,27 @@ A universal, minimal plugin system for **Node.js**, **Deno**, and **Bun**. Suppo
 
 - **Deno**: import from your local path or deno.land/x / jsr.
 - **Bun / Node**: use `import { ... } from "./mod.ts"` (works natively in all three).
+- **npm**: `npm install @deno/plugin-system` then `import { ... } from "@deno/plugin-system"`.
+
+## Build
+
+The project uses [tsup](https://tsup.xyz) to produce a single `index.js` and `index.d.ts` in `dist/`:
+
+```bash
+npm run build
+```
+
+This outputs:
+
+- `dist/index.js` — bundled ESM entry point
+- `dist/index.cjs` — bundled CommonJS entry point
+- `dist/index.d.ts` — TypeScript declarations
+
+For development, use the watch mode:
+
+```bash
+npm run build:watch
+```
 
 ## Core Concepts
 
