@@ -16,7 +16,10 @@
   "scripts": {
     "test": "node --test tests/**/*.test.ts",
     "test:deno": "deno test --allow-read --allow-env --allow-import --allow-net tests/**/*.test.ts",
-    "test:bun": "bun test tests/**/*.test.ts"
+    "test:bun": "bun test tests/**/*.test.ts",
+    "build:js": "bun build ./mod.ts --outdir ./dist --target node",
+    "build:types": "tsc",
+    "build": "bun run build:js && bun run build:types"
   },
   "keywords": [
     "plugin",
@@ -26,5 +29,8 @@
     "node",
     "universal"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
 }
