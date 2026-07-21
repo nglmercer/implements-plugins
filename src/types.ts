@@ -24,3 +24,10 @@ export type PluginConst = {
 export type PluginInput = IPlugin | PluginConst | (new () => IPlugin);
 
 export type PluginManagerOptions = Record<string, unknown>;
+
+export interface PluginManifest {
+  plugins: Array<{
+    path?: string;
+    url?: string;
+  }>;
+}

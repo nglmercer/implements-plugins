@@ -1,8 +1,21 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { strict as assert } from "node:assert";
 import { validatePlugin, PluginValidationError } from "../src/validation.ts";
 import type { IPlugin, PluginConst } from "../src/types.ts";
 
-Deno.test("validatePlugin - valid class plugin", () => {
+async function registerTest(name: string, fn: () => void | Promise<void>) {
+  if (typeof Deno !== "undefined" && typeof Deno.test === "function") {
+    Deno.test(name, fn);
+  } else {
+    const nodeTestModule = globalThis as any;
+    if (!nodeTestModule.__testModule) {
+      const mod = await import("node:test");
+      nodeTestModule.__testModule = mod;
+    }
+    nodeTestModule.__testModule.test(name, fn);
+  }
+}
+
+await registerTest("validatePlugin - valid class plugin", () => {
   class ValidPlugin implements IPlugin {
     readonly metadata = { name: "valid", version: "1.0.0" };
     setup() {}
@@ -10,7 +23,7 @@ Deno.test("validatePlugin - valid class plugin", () => {
   validatePlugin(ValidPlugin);
 });
 
-Deno.test("validatePlugin - valid object plugin", () => {
+await registerTest("validatePlugin - valid object plugin", () => {
   const plugin: PluginConst = {
     metadata: { name: "valid-obj", version: "1.0.0" },
     setup() {},
@@ -18,7 +31,7 @@ Deno.test("validatePlugin - valid object plugin", () => {
   validatePlugin(plugin);
 });
 
-Deno.test("validatePlugin - plugin with all hooks", () => {
+await registerTest("validatePlugin - plugin with all hooks", () => {
   class FullPlugin implements IPlugin {
     readonly metadata = { name: "full", version: "1.0.0" };
     setup() {}
@@ -30,145 +43,133 @@ Deno.test("validatePlugin - plugin with all hooks", () => {
   validatePlugin(FullPlugin);
 });
 
-Deno.test("validatePlugin - plugin with no hooks", () => {
+await registerTest("validatePlugin - plugin with no hooks", () => {
   const plugin: PluginConst = {
     metadata: { name: "no-hooks", version: "1.0.0" },
   };
   validatePlugin(plugin);
 });
 
-Deno.test("validatePlugin - rejects null", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects null", () => {
+  assert.throws(
     () => validatePlugin(null as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin must be a class instance or a plain object with metadata",
+    /Plugin must be a class instance or a plain object with metadata/,
   );
 });
 
-Deno.test("validatePlugin - rejects undefined", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects undefined", () => {
+  assert.throws(
     () => validatePlugin(undefined as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin must be a class instance or a plain object with metadata",
+    /Plugin must be a class instance or a plain object with metadata/,
   );
 });
 
-Deno.test("validatePlugin - rejects string", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects string", () => {
+  assert.throws(
     () => validatePlugin("not-a-plugin" as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin must be a class instance or a plain object with metadata",
+    /Plugin must be a class instance or a plain object with metadata/,
   );
 });
 
-Deno.test("validatePlugin - rejects number", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects number", () => {
+  assert.throws(
     () => validatePlugin(42 as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin must be a class instance or a plain object with metadata",
+    /Plugin must be a class instance or a plain object with metadata/,
   );
 });
 
-Deno.test("validatePlugin - rejects object without metadata", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects object without metadata", () => {
+  assert.throws(
     () => validatePlugin({ setup() {} } as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin must have a metadata object",
+    /Plugin must have a metadata object/,
   );
 });
 
-Deno.test("validatePlugin - rejects metadata with empty name", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects metadata with empty name", () => {
+  assert.throws(
     () =>
       validatePlugin({
         metadata: { name: "", version: "1.0.0" },
       } as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin metadata must have non-empty 'name' and 'version' strings",
+    /Plugin metadata must have non-empty 'name' and 'version' strings/,
   );
 });
 
-Deno.test("validatePlugin - rejects metadata with empty version", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects metadata with empty version", () => {
+  assert.throws(
     () =>
       validatePlugin({
         metadata: { name: "test", version: "" },
       } as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin metadata must have non-empty 'name' and 'version' strings",
+    /Plugin metadata must have non-empty 'name' and 'version' strings/,
   );
 });
 
-Deno.test("validatePlugin - rejects metadata with missing name", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects metadata with missing name", () => {
+  assert.throws(
     () =>
       validatePlugin({
         metadata: { version: "1.0.0" },
       } as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin metadata must have non-empty 'name' and 'version' strings",
+    /Plugin metadata must have non-empty 'name' and 'version' strings/,
   );
 });
 
-Deno.test("validatePlugin - rejects metadata with missing version", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects metadata with missing version", () => {
+  assert.throws(
     () =>
       validatePlugin({
         metadata: { name: "test" },
       } as unknown as PluginConst),
-    PluginValidationError,
-    "Plugin metadata must have non-empty 'name' and 'version' strings",
+    /Plugin metadata must have non-empty 'name' and 'version' strings/,
   );
 });
 
-Deno.test("validatePlugin - rejects hook that is not a function", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects hook that is not a function", () => {
+  assert.throws(
     () =>
       validatePlugin({
         metadata: { name: "bad-hook", version: "1.0.0" },
         setup: "not-a-function",
       } as unknown as PluginConst),
-    PluginValidationError,
-    '"setup" must be a function',
+    /"setup" must be a function/,
   );
 });
 
-Deno.test("validatePlugin - rejects onLoad that is not a function", () => {
-  assertThrows(
+await registerTest("validatePlugin - rejects onLoad that is not a function", () => {
+  assert.throws(
     () =>
       validatePlugin({
         metadata: { name: "bad-onload", version: "1.0.0" },
         onLoad: 123,
       } as unknown as PluginConst),
-    PluginValidationError,
-    '"onLoad" must be a function',
+    /"onLoad" must be a function/,
   );
 });
 
-Deno.test("validatePlugin - class plugin without metadata in prototype or instance", () => {
+await registerTest("validatePlugin - class plugin without metadata in prototype or instance", () => {
   class BadClassPlugin {
     setup() {}
   }
-  assertThrows(
+  assert.throws(
     () => validatePlugin(BadClassPlugin as unknown as PluginConst),
-    PluginValidationError,
-    "Class plugin must have metadata in prototype or instance",
+    /Class plugin must have metadata in prototype or instance/,
   );
 });
 
-Deno.test("validatePlugin - class plugin with invalid metadata", () => {
+await registerTest("validatePlugin - class plugin with invalid metadata", () => {
   class BadMetaPlugin {
     static metadata = { name: "", version: "1.0.0" };
     setup() {}
   }
-  assertThrows(
+  assert.throws(
     () => validatePlugin(BadMetaPlugin),
-    PluginValidationError,
+    /Class plugin must have metadata in prototype or instance/,
   );
 });
 
-Deno.test("PluginValidationError has correct name", () => {
+await registerTest("PluginValidationError has correct name", () => {
   const err = new PluginValidationError("test error");
-  assertEquals(err.name, "PluginValidationError");
-  assertEquals(err.message, "test error");
+  assert.deepStrictEqual(err.name, "PluginValidationError");
+  assert.deepStrictEqual(err.message, "test error");
 });

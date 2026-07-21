@@ -1,7 +1,24 @@
-experimental deno plugins with dinamyc import.
-example: 
+# Universal Plugin System
+
+A universal, minimal plugin system for **Node.js**, **Deno**, and **Bun**. Supports class-based plugins, plain-object plugins, dynamic file/URL imports, directory scanning, and manifest-based loading.
+
+## Installation
+
+- **Deno**: import from your local path or deno.land/x / jsr.
+- **Bun / Node**: use `import { ... } from "./mod.ts"` (works natively in all three).
+
+## Core Concepts
+
+1. **`IPlugin`** - interface with `metadata`, optional hooks (`setup`, `onLoad`, `onEnable`, `onDisable`, `onUnload`).
+2. **`PluginConst`** - plain-object plugin (same shape as `IPlugin`).
+3. **`PluginInput`** - union of `IPlugin | PluginConst | (new () => IPlugin)`.
+4. **`PluginManager`** - register, init, retrieve, and shut down plugins.
+5. **Loaders** - `loadPluginFromFile`, `loadPluginFromUrl`, `loadPluginsFromDir`, `loadPluginsFromManifest`.
+
+## Basic Usage
+
 ```typescript
-import { PluginManager, type IPlugin } from "../mod.ts";
+import { PluginManager, type IPlugin } from "./mod.ts";
 
 // Class-based plugin
 class LoggerPlugin implements IPlugin {
@@ -59,3 +76,52 @@ greeter?.greet("World");
 
 await manager.shutdown();
 ```
+
+## File Loaders
+
+### Load a single plugin from file
+
+```typescript
+import { loadPluginFromFile } from "./mod.ts";
+
+const plugin = await loadPluginFromFile("./plugins/logger.ts");
+```
+
+### Load all plugins from a directory
+
+```typescript
+import { loadPluginsFromDir } from "./mod.ts";
+
+const plugins = await loadPluginsFromDir("./plugins");
+for (const plugin of plugins) {
+  manager.register(plugin);
+}
+```
+
+### Load from a manifest (recommended for larger apps)
+
+```typescript
+import { loadPluginsFromManifest, type PluginManifest } from "./mod.ts";
+
+const manifest: PluginManifest = {
+  plugins: [
+    { path: "./plugins/logger.ts" },
+    { path: "./plugins/greeter.ts" },
+    { url: "https://example.com/remote-plugin.js" },
+  ],
+};
+
+const plugins = await loadPluginsFromManifest(manifest, process.cwd());
+```
+
+## Runtime Support
+
+| Runtime | Status | Notes |
+|---------|--------|-------|
+| Node.js (>=18) | ✅ | uses `node:` builtins |
+| Bun | ✅ | uses `node:` builtins + `node:test` |
+| Deno | ✅ | uses Deno compatibility layer for `node:` |
+
+## License
+
+MIT

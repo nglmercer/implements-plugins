@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { strict as assert } from "node:assert";
 import { PluginManager } from "../src/manager.ts";
 import type { IPlugin, PluginConst } from "../src/types.ts";
 
@@ -20,64 +20,76 @@ const ObjectPlugin: PluginConst = {
   setup() {},
 };
 
-Deno.test("PluginManager - register class plugin", () => {
+async function registerTest(name: string, fn: () => void | Promise<void>) {
+  if (typeof Deno !== "undefined" && typeof Deno.test === "function") {
+    Deno.test(name, fn);
+  } else {
+    const nodeTestModule = globalThis as any;
+    if (!nodeTestModule.__testModule) {
+      const mod = await import("node:test");
+      nodeTestModule.__testModule = mod;
+    }
+    nodeTestModule.__testModule.test(name, fn);
+  }
+}
+
+await registerTest("PluginManager - register class plugin", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
-  assertEquals(manager.has("test"), true);
+  assert.deepStrictEqual(manager.has("test"), true);
 });
 
-Deno.test("PluginManager - register object plugin", () => {
+await registerTest("PluginManager - register object plugin", () => {
   const manager = new PluginManager();
   manager.register(ObjectPlugin);
-  assertEquals(manager.has("obj-plugin"), true);
+  assert.deepStrictEqual(manager.has("obj-plugin"), true);
 });
 
-Deno.test("PluginManager - register multiple plugins", () => {
+await registerTest("PluginManager - register multiple plugins", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
   manager.register(MinimalPlugin);
   manager.register(ObjectPlugin);
-  assertEquals(manager.getPlugins().length, 3);
+  assert.deepStrictEqual(manager.getPlugins().length, 3);
 });
 
-Deno.test("PluginManager - reject duplicate plugin", () => {
+await registerTest("PluginManager - reject duplicate plugin", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
-  assertThrows(
+  assert.throws(
     () => manager.register(TestPlugin),
-    Error,
-    'Plugin "test" is already registered',
+    /Plugin "test" is already registered/,
   );
 });
 
-Deno.test("PluginManager - getPlugin returns plugin", () => {
+await registerTest("PluginManager - getPlugin returns plugin", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
   const plugin = manager.getPlugin("test");
-  assertEquals(plugin, TestPlugin);
+  assert.deepStrictEqual(plugin, TestPlugin);
 });
 
-Deno.test("PluginManager - getPlugin returns undefined for missing", () => {
+await registerTest("PluginManager - getPlugin returns undefined for missing", () => {
   const manager = new PluginManager();
   const plugin = manager.getPlugin("nonexistent");
-  assertEquals(plugin, undefined);
+  assert.deepStrictEqual(plugin, undefined);
 });
 
-Deno.test("PluginManager - getPlugins returns all names", () => {
+await registerTest("PluginManager - getPlugins returns all names", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
   manager.register(MinimalPlugin);
   const names = manager.getPlugins();
-  assertEquals(names.includes("test"), true);
-  assertEquals(names.includes("minimal"), true);
+  assert.deepStrictEqual(names.includes("test"), true);
+  assert.deepStrictEqual(names.includes("minimal"), true);
 });
 
-Deno.test("PluginManager - has returns false for missing", () => {
+await registerTest("PluginManager - has returns false for missing", () => {
   const manager = new PluginManager();
-  assertEquals(manager.has("nonexistent"), false);
+  assert.deepStrictEqual(manager.has("nonexistent"), false);
 });
 
-Deno.test("PluginManager - init calls setup and onLoad", async () => {
+await registerTest("PluginManager - init calls setup and onLoad", async () => {
   const callOrder: string[] = [];
 
   class OrderPlugin implements IPlugin {
@@ -94,10 +106,10 @@ Deno.test("PluginManager - init calls setup and onLoad", async () => {
   manager.register(OrderPlugin);
   await manager.init();
 
-  assertEquals(callOrder, ["setup", "onLoad"]);
+  assert.deepStrictEqual(callOrder, ["setup", "onLoad"]);
 });
 
-Deno.test("PluginManager - init only runs once", async () => {
+await registerTest("PluginManager - init only runs once", async () => {
   let setupCount = 0;
 
   class CountPlugin implements IPlugin {
@@ -112,10 +124,10 @@ Deno.test("PluginManager - init only runs once", async () => {
   await manager.init();
   await manager.init();
 
-  assertEquals(setupCount, 1);
+  assert.deepStrictEqual(setupCount, 1);
 });
 
-Deno.test("PluginManager - shutdown calls onDisable and onUnload", async () => {
+await registerTest("PluginManager - shutdown calls onDisable and onUnload", async () => {
   const callOrder: string[] = [];
 
   class ShutdownPlugin implements IPlugin {
@@ -132,19 +144,19 @@ Deno.test("PluginManager - shutdown calls onDisable and onUnload", async () => {
   manager.register(ShutdownPlugin);
   await manager.shutdown();
 
-  assertEquals(callOrder, ["onDisable", "onUnload"]);
+  assert.deepStrictEqual(callOrder, ["onDisable", "onUnload"]);
 });
 
-Deno.test("PluginManager - shutdown clears plugins", async () => {
+await registerTest("PluginManager - shutdown clears plugins", async () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
   await manager.shutdown();
 
-  assertEquals(manager.getPlugins().length, 0);
-  assertEquals(manager.has("test"), false);
+  assert.deepStrictEqual(manager.getPlugins().length, 0);
+  assert.deepStrictEqual(manager.has("test"), false);
 });
 
-Deno.test("PluginManager - init and shutdown full lifecycle", async () => {
+await registerTest("PluginManager - init and shutdown full lifecycle", async () => {
   const lifecycle: string[] = [];
 
   class LifecyclePlugin implements IPlugin {
@@ -171,10 +183,10 @@ Deno.test("PluginManager - init and shutdown full lifecycle", async () => {
   await manager.init();
   await manager.shutdown();
 
-  assertEquals(lifecycle, ["setup", "onLoad", "onDisable", "onUnload"]);
+  assert.deepStrictEqual(lifecycle, ["setup", "onLoad", "onDisable", "onUnload"]);
 });
 
-Deno.test("PluginManager - multiple plugins init order", async () => {
+await registerTest("PluginManager - multiple plugins init order", async () => {
   const order: string[] = [];
 
   class PluginA implements IPlugin {
@@ -196,12 +208,12 @@ Deno.test("PluginManager - multiple plugins init order", async () => {
   manager.register(PluginB);
   await manager.init();
 
-  assertEquals(order.length, 2);
-  assertEquals(order[0], "a");
-  assertEquals(order[1], "b");
+  assert.deepStrictEqual(order.length, 2);
+  assert.deepStrictEqual(order[0], "a");
+  assert.deepStrictEqual(order[1], "b");
 });
 
-Deno.test("PluginManager - async hooks are awaited", async () => {
+await registerTest("PluginManager - async hooks are awaited", async () => {
   const order: string[] = [];
 
   class AsyncPlugin implements IPlugin {
@@ -220,19 +232,19 @@ Deno.test("PluginManager - async hooks are awaited", async () => {
   manager.register(AsyncPlugin);
   await manager.init();
 
-  assertEquals(order, ["setup", "onLoad"]);
+  assert.deepStrictEqual(order, ["setup", "onLoad"]);
 });
 
-Deno.test("PluginManager - getPlugin returns raw input", () => {
+await registerTest("PluginManager - getPlugin returns raw input", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
   const raw = manager.getPlugin("test");
-  assertEquals(raw, TestPlugin);
+  assert.deepStrictEqual(raw, TestPlugin);
 });
 
-Deno.test("PluginManager - register invalid plugin throws", () => {
+await registerTest("PluginManager - register invalid plugin throws", () => {
   const manager = new PluginManager();
-  assertThrows(
+  assert.throws(
     () => manager.register(null as unknown as PluginConst),
     Error,
   );

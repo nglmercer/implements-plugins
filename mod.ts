@@ -4,6 +4,7 @@ export {
   loadPluginFromFile,
   loadPluginFromUrl,
   loadPluginsFromDir,
+  loadPluginsFromManifest,
 } from "./src/loader.ts";
 export type {
   IPlugin,
@@ -11,4 +12,5 @@ export type {
   PluginInput,
   PluginManagerOptions,
   PluginMetadata,
+  PluginManifest,
 } from "./src/types.ts";
