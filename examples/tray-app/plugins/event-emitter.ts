@@ -16,6 +16,14 @@ class EventEmitterPlugin implements IPlugin {
 
   private events = new Map<string, EventHandler[]>();
 
+  constructor() {
+    this.on = this.on.bind(this);
+    this.off = this.off.bind(this);
+    this.emit = this.emit.bind(this);
+    this.once = this.once.bind(this);
+    this.listenerCount = this.listenerCount.bind(this);
+  }
+
   setup(_ctx: PluginContext): void {}
 
   on(event: string, handler: EventHandler): void {

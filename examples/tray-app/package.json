@@ -7,6 +7,7 @@
     "dev": "bun run main.ts"
   },
   "dependencies": {
-    "tray-icon-node": "^0.1.2"
+    "tray-icon-node": "^0.1.2",
+    "webview-napi": "^0.2.0"
   }
 }
