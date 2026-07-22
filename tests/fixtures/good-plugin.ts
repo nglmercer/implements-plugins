@@ -1,8 +1,8 @@
-import type { IPlugin } from "../../mod.ts";
+import type { IPlugin, PluginContext } from "../../mod.ts";
 
 class FixturePlugin implements IPlugin {
   readonly metadata = { name: "fixture", version: "1.0.0" };
-  setup() {}
+  setup(_ctx: PluginContext) {}
 }
 
 export default new FixturePlugin();

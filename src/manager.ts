@@ -1,6 +1,7 @@
 import type {
   IPlugin,
   PluginConst,
+  PluginContext,
   PluginInput,
   PluginManagerOptions,
 } from "./types.ts";
@@ -14,8 +15,18 @@ interface PluginEntry {
 export class PluginManager {
   private plugins = new Map<string, PluginEntry>();
   private initialized = false;
+  private context: PluginContext;
 
-  constructor(_options?: PluginManagerOptions) {}
+  constructor(_options?: PluginManagerOptions) {
+    this.context = {
+      getPlugin: <T = unknown>(name: string): T | undefined => {
+        return this.getPlugin<T>(name);
+      },
+      getPlugins: (): string[] => {
+        return this.getPlugins();
+      },
+    };
+  }
 
   register(plugin: PluginInput): void {
     validatePlugin(plugin);
@@ -29,7 +40,7 @@ export class PluginManager {
     this.plugins.set(metadata.name, { plugin: normalized, raw: plugin });
   }
 
-  getPlugin<T = PluginInput>(name: string): T | undefined {
+  getPlugin<T = unknown>(name: string): T | undefined {
     const entry = this.plugins.get(name);
     return entry ? (entry.raw as T) : undefined;
   }
@@ -41,10 +52,10 @@ export class PluginManager {
     for (const [, entry] of this.plugins) {
       const p = entry.plugin;
       if (typeof p.setup === "function") {
-        await p.setup();
+        await p.setup(this.context);
       }
       if (typeof p.onLoad === "function") {
-        await p.onLoad();
+        await p.onLoad(this.context);
       }
     }
   }
@@ -53,10 +64,10 @@ export class PluginManager {
     for (const [, entry] of this.plugins) {
       const p = entry.plugin;
       if (typeof p.onDisable === "function") {
-        await p.onDisable();
+        await p.onDisable(this.context);
       }
       if (typeof p.onUnload === "function") {
-        await p.onUnload();
+        await p.onUnload(this.context);
       }
     }
     this.plugins.clear();
@@ -69,6 +80,10 @@ export class PluginManager {
 
   has(name: string): boolean {
     return this.plugins.has(name);
+  }
+
+  getContext(): PluginContext {
+    return this.context;
   }
 
   private getMetadata(plugin: PluginInput): { name: string; version: string } {

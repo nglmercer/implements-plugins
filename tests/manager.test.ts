@@ -1,14 +1,14 @@
 import { strict as assert } from "node:assert";
 import { PluginManager } from "../src/manager.ts";
-import type { IPlugin, PluginConst } from "../src/types.ts";
+import type { IPlugin, PluginContext, PluginConst } from "../src/types.ts";
 
 class TestPlugin implements IPlugin {
   readonly metadata = { name: "test", version: "1.0.0" };
-  setup() {}
-  onLoad() {}
-  onEnable() {}
-  onDisable() {}
-  onUnload() {}
+  setup(_ctx: PluginContext) {}
+  onLoad(_ctx: PluginContext) {}
+  onEnable(_ctx: PluginContext) {}
+  onDisable(_ctx: PluginContext) {}
+  onUnload(_ctx: PluginContext) {}
 }
 
 class MinimalPlugin implements IPlugin {
@@ -17,7 +17,7 @@ class MinimalPlugin implements IPlugin {
 
 const ObjectPlugin: PluginConst = {
   metadata: { name: "obj-plugin", version: "1.0.0" },
-  setup() {},
+  setup(_ctx: PluginContext) {},
 };
 
 async function registerTest(name: string, fn: () => void | Promise<void>) {
@@ -89,15 +89,17 @@ await registerTest("PluginManager - has returns false for missing", () => {
   assert.deepStrictEqual(manager.has("nonexistent"), false);
 });
 
-await registerTest("PluginManager - init calls setup and onLoad", async () => {
+await registerTest("PluginManager - init calls setup and onLoad with ctx", async () => {
   const callOrder: string[] = [];
+  let receivedCtx: PluginContext | undefined;
 
   class OrderPlugin implements IPlugin {
     readonly metadata = { name: "order", version: "1.0.0" };
-    setup() {
+    setup(ctx: PluginContext) {
       callOrder.push("setup");
+      receivedCtx = ctx;
     }
-    onLoad() {
+    onLoad(_ctx: PluginContext) {
       callOrder.push("onLoad");
     }
   }
@@ -107,6 +109,9 @@ await registerTest("PluginManager - init calls setup and onLoad", async () => {
   await manager.init();
 
   assert.deepStrictEqual(callOrder, ["setup", "onLoad"]);
+  assert.notDeepStrictEqual(receivedCtx, undefined);
+  assert.deepStrictEqual(typeof receivedCtx?.getPlugin, "function");
+  assert.deepStrictEqual(typeof receivedCtx?.getPlugins, "function");
 });
 
 await registerTest("PluginManager - init only runs once", async () => {
@@ -114,7 +119,7 @@ await registerTest("PluginManager - init only runs once", async () => {
 
   class CountPlugin implements IPlugin {
     readonly metadata = { name: "count", version: "1.0.0" };
-    setup() {
+    setup(_ctx: PluginContext) {
       setupCount++;
     }
   }
@@ -127,15 +132,17 @@ await registerTest("PluginManager - init only runs once", async () => {
   assert.deepStrictEqual(setupCount, 1);
 });
 
-await registerTest("PluginManager - shutdown calls onDisable and onUnload", async () => {
+await registerTest("PluginManager - shutdown calls onDisable and onUnload with ctx", async () => {
   const callOrder: string[] = [];
+  let disableCtx: PluginContext | undefined;
 
   class ShutdownPlugin implements IPlugin {
     readonly metadata = { name: "shutdown", version: "1.0.0" };
-    onDisable() {
+    onDisable(ctx: PluginContext) {
       callOrder.push("onDisable");
+      disableCtx = ctx;
     }
-    onUnload() {
+    onUnload(_ctx: PluginContext) {
       callOrder.push("onUnload");
     }
   }
@@ -145,6 +152,7 @@ await registerTest("PluginManager - shutdown calls onDisable and onUnload", asyn
   await manager.shutdown();
 
   assert.deepStrictEqual(callOrder, ["onDisable", "onUnload"]);
+  assert.notDeepStrictEqual(disableCtx, undefined);
 });
 
 await registerTest("PluginManager - shutdown clears plugins", async () => {
@@ -161,19 +169,19 @@ await registerTest("PluginManager - init and shutdown full lifecycle", async () 
 
   class LifecyclePlugin implements IPlugin {
     readonly metadata = { name: "lifecycle", version: "1.0.0" };
-    setup() {
+    setup(_ctx: PluginContext) {
       lifecycle.push("setup");
     }
-    onLoad() {
+    onLoad(_ctx: PluginContext) {
       lifecycle.push("onLoad");
     }
-    onEnable() {
+    onEnable(_ctx: PluginContext) {
       lifecycle.push("onEnable");
     }
-    onDisable() {
+    onDisable(_ctx: PluginContext) {
       lifecycle.push("onDisable");
     }
-    onUnload() {
+    onUnload(_ctx: PluginContext) {
       lifecycle.push("onUnload");
     }
   }
@@ -191,14 +199,14 @@ await registerTest("PluginManager - multiple plugins init order", async () => {
 
   class PluginA implements IPlugin {
     readonly metadata = { name: "a", version: "1.0.0" };
-    setup() {
+    setup(_ctx: PluginContext) {
       order.push("a");
     }
   }
 
   class PluginB implements IPlugin {
     readonly metadata = { name: "b", version: "1.0.0" };
-    setup() {
+    setup(_ctx: PluginContext) {
       order.push("b");
     }
   }
@@ -218,11 +226,11 @@ await registerTest("PluginManager - async hooks are awaited", async () => {
 
   class AsyncPlugin implements IPlugin {
     readonly metadata = { name: "async", version: "1.0.0" };
-    async setup() {
+    async setup(_ctx: PluginContext) {
       await new Promise((r) => setTimeout(r, 10));
       order.push("setup");
     }
-    async onLoad() {
+    async onLoad(_ctx: PluginContext) {
       await new Promise((r) => setTimeout(r, 10));
       order.push("onLoad");
     }

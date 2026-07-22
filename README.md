@@ -32,14 +32,15 @@ npm run build:watch
 
 1. **`IPlugin`** - interface with `metadata`, optional hooks (`setup`, `onLoad`, `onEnable`, `onDisable`, `onUnload`).
 2. **`PluginConst`** - plain-object plugin (same shape as `IPlugin`).
-3. **`PluginInput`** - union of `IPlugin | PluginConst | (new () => IPlugin)`.
-4. **`PluginManager`** - register, init, retrieve, and shut down plugins.
-5. **Loaders** - `loadPluginFromFile`, `loadPluginFromUrl`, `loadPluginsFromDir`, `loadPluginsFromManifest`.
+3. **`PluginContext`** - passed to every hook, provides `getPlugin()` and `getPlugins()` for inter-plugin communication.
+4. **`PluginInput`** - union of `IPlugin | PluginConst | (new () => IPlugin)`.
+5. **`PluginManager`** - register, init, retrieve, and shut down plugins.
+6. **Loaders** - `loadPluginFromFile`, `loadPluginFromUrl`, `loadPluginsFromDir`, `loadPluginsFromManifest`.
 
 ## Basic Usage
 
 ```typescript
-import { PluginManager, type IPlugin } from "./mod.ts";
+import { PluginManager, type IPlugin, type PluginContext } from "./mod.ts";
 
 // Class-based plugin
 class LoggerPlugin implements IPlugin {
@@ -48,11 +49,11 @@ class LoggerPlugin implements IPlugin {
     version: "1.0.0",
   };
 
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[logger] setup");
   }
 
-  onLoad() {
+  onLoad(_ctx: PluginContext) {
     console.log("[logger] loaded");
   }
 
@@ -64,7 +65,7 @@ class LoggerPlugin implements IPlugin {
 // Const-based plugin with custom type
 interface GreeterPluginType {
   metadata: { name: string; version: string };
-  setup(): void;
+  setup(ctx: PluginContext): void;
   greet(name: string): void;
 }
 
@@ -73,7 +74,7 @@ const GreeterPlugin: GreeterPluginType = {
     name: "greeter",
     version: "1.0.0",
   },
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[greeter] setup");
   },
   greet(name: string) {
@@ -97,6 +98,48 @@ greeter?.greet("World");
 
 await manager.shutdown();
 ```
+
+## Plugin Communication
+
+Every lifecycle hook receives a `PluginContext` that lets plugins resolve sibling plugins via `getPlugin()`. This enables decoupled inter-plugin communication — no shared state needed.
+
+```typescript
+interface EventsPluginType {
+  metadata: { name: string; version: string };
+  setup(ctx: PluginContext): void;
+  on(event: string, handler: (...args: unknown[]) => void): void;
+  emit(event: string, ...args: unknown[]): void;
+}
+
+const EventsPlugin: EventsPluginType = {
+  metadata: { name: "events", version: "1.0.0" },
+  setup(_ctx: PluginContext) {},
+  on(event, handler) { /* store handler */ },
+  emit(event, ...args) { /* call handlers */ },
+};
+
+class OrdersPlugin implements IPlugin {
+  readonly metadata = { name: "orders", version: "1.0.0" };
+
+  setup(ctx: PluginContext) {
+    const events = ctx.getPlugin<EventsPluginType>("events");
+    events?.emit("order.created", { product: "Laptop" });
+  }
+}
+
+class NotificationsPlugin implements IPlugin {
+  readonly metadata = { name: "notifications", version: "1.0.0" };
+
+  setup(ctx: PluginContext) {
+    const events = ctx.getPlugin<EventsPluginType>("events");
+    events?.on("order.created", (data) => {
+      console.log("Notify:", data);
+    });
+  }
+}
+```
+
+> **Why `ctx` in every hook?** Not just `setup`. During `shutdown`, the context lets plugins gracefully notify others before being unloaded. Each hook gets a fresh reference that reflects the current plugin set.
 
 ## File Loaders
 

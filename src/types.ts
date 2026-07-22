@@ -3,22 +3,27 @@ export interface PluginMetadata {
   version: string;
 }
 
+export interface PluginContext {
+  getPlugin<T = unknown>(name: string): T | undefined;
+  getPlugins(): string[];
+}
+
 export interface IPlugin {
   readonly metadata: PluginMetadata;
-  setup?(): void | Promise<void>;
-  onLoad?(): void | Promise<void>;
-  onEnable?(): void | Promise<void>;
-  onDisable?(): void | Promise<void>;
-  onUnload?(): void | Promise<void>;
+  setup?(ctx: PluginContext): void | Promise<void>;
+  onLoad?(ctx: PluginContext): void | Promise<void>;
+  onEnable?(ctx: PluginContext): void | Promise<void>;
+  onDisable?(ctx: PluginContext): void | Promise<void>;
+  onUnload?(ctx: PluginContext): void | Promise<void>;
 }
 
 export type PluginConst = {
   metadata: PluginMetadata;
-  setup?: () => void | Promise<void>;
-  onLoad?: () => void | Promise<void>;
-  onEnable?: () => void | Promise<void>;
-  onDisable?: () => void | Promise<void>;
-  onUnload?: () => void | Promise<void>;
+  setup?: (ctx: PluginContext) => void | Promise<void>;
+  onLoad?: (ctx: PluginContext) => void | Promise<void>;
+  onEnable?: (ctx: PluginContext) => void | Promise<void>;
+  onDisable?: (ctx: PluginContext) => void | Promise<void>;
+  onUnload?: (ctx: PluginContext) => void | Promise<void>;
 };
 
 export type PluginInput = IPlugin | PluginConst | (new () => IPlugin);

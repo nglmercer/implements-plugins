@@ -1,10 +1,10 @@
-import type { IPlugin } from "../mod.ts";
+import type { IPlugin, PluginContext } from "../mod.ts";
 
 class CounterPlugin implements IPlugin {
   readonly metadata = { name: "counter", version: "1.0.0" };
   private count = 0;
 
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[counter] setup");
   }
 

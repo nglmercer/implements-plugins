@@ -1,4 +1,4 @@
-import { PluginManager, loadPluginsFromDir, type IPlugin } from "../mod.ts";
+import { PluginManager, loadPluginsFromDir, type IPlugin, type PluginContext } from "../mod.ts";
 
 const PORT = 8000;
 
@@ -6,7 +6,7 @@ class ApiPlugin implements IPlugin {
   readonly metadata = { name: "api", version: "1.0.0" };
   private requests = 0;
 
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[api] plugin setup");
   }
 
@@ -23,7 +23,7 @@ class ApiPlugin implements IPlugin {
 class MathPlugin implements IPlugin {
   readonly metadata = { name: "math", version: "1.0.0" };
 
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[math] plugin setup");
   }
 

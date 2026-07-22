@@ -1,9 +1,9 @@
-import type { IPlugin } from "../mod.ts";
+import type { IPlugin, PluginContext } from "../mod.ts";
 
 class TimePlugin implements IPlugin {
   readonly metadata = { name: "time", version: "1.0.0" };
 
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[time] setup");
   }
 

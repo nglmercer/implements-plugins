@@ -1,4 +1,4 @@
-import { PluginManager, type IPlugin } from "../mod.ts";
+import { PluginManager, type IPlugin, type PluginContext } from "../mod.ts";
 
 // Class-based plugin
 class LoggerPlugin implements IPlugin {
@@ -7,11 +7,11 @@ class LoggerPlugin implements IPlugin {
     version: "1.0.0",
   };
 
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[logger] setup");
   }
 
-  onLoad() {
+  onLoad(_ctx: PluginContext) {
     console.log("[logger] loaded");
   }
 
@@ -23,7 +23,7 @@ class LoggerPlugin implements IPlugin {
 // Const-based plugin with custom type
 interface GreeterPluginType {
   metadata: { name: string; version: string };
-  setup(): void;
+  setup(ctx: PluginContext): void;
   greet(name: string): void;
 }
 
@@ -32,7 +32,7 @@ const GreeterPlugin: GreeterPluginType = {
     name: "greeter",
     version: "1.0.0",
   },
-  setup() {
+  setup(_ctx: PluginContext) {
     console.log("[greeter] setup");
   },
   greet(name: string) {

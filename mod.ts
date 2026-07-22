@@ -9,6 +9,7 @@ export {
 export type {
   IPlugin,
   PluginConst,
+  PluginContext,
   PluginInput,
   PluginManagerOptions,
   PluginMetadata,
