@@ -1,0 +1,12 @@
+{
+  "name": "plugin-system-tray-example",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run main.ts"
+  },
+  "dependencies": {
+    "tray-icon-node": "^0.1.2"
+  }
+}
