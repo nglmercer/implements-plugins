@@ -13,13 +13,16 @@ async function main(): Promise<void> {
   for (const plugin of plugins) {
     manager.loadPlugin(plugin, dirPath);
   }
-  await runTray(manager);
   const emitter = manager.getPlugin('event-emitter') as EventEmitterPluginType;
+  //console.log("emitter",emitter)
   if (emitter) {
-    emitter.on('tiktok', (...args) => {
-      console.log(...args)
+    emitter.on('tiktok', (a) => {
+      if (typeof a !== 'object' || a === null) return;
+      const keys = Object.keys(a);
+      console.log(keys)
     });
   }
+  await runTray(manager);
 }
 
 main();
