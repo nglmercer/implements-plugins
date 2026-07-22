@@ -1,16 +1,20 @@
 import type { IPlugin, PluginContext } from "../../../mod.ts";
-import type { EventEmitterPluginType } from "./event-emitter.ts";
+import type { EventBusPluginType } from "./event-bus.ts";
 import type { StoragePluginType } from "./storage.ts";
 
 class ClockPlugin implements IPlugin {
-  readonly metadata = { name: "clock", version: "1.0.0" };
+  readonly metadata = {
+    name: "clock",
+    version: "1.0.0",
+    emits: ["system:tick"] as const,
+    listens: [] as const,
+  };
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private tickCount = 0;
 
   setup(ctx: PluginContext): void {
     const storage = ctx.getPlugin<StoragePluginType>("storage");
-    console.log("setup clock plugin")
     const saved = storage?.get<number>("tickCount");
     if (saved !== undefined) {
       this.tickCount = saved;
@@ -18,10 +22,10 @@ class ClockPlugin implements IPlugin {
   }
 
   onEnable(ctx: PluginContext): void {
-    const emitter = ctx.getPlugin<EventEmitterPluginType>("event-emitter");
+    const bus = ctx.getPlugin<EventBusPluginType>("event-bus");
     this.timer = setInterval(() => {
       this.tickCount++;
-      emitter?.emit("tick", this.tickCount);
+      bus?.emit("system", "tick", { count: this.tickCount });
     }, 1000);
   }
 
