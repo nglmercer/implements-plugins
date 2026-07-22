@@ -62,11 +62,27 @@ await registerTest("PluginManager - reject duplicate plugin", () => {
   );
 });
 
-await registerTest("PluginManager - getPlugin returns plugin", () => {
+await registerTest("PluginManager - getPlugin returns plugin when enabled", () => {
+  const manager = new PluginManager();
+  manager.register(TestPlugin);
+  manager.enable("test");
+  const plugin = manager.getPlugin<IPlugin>("test");
+  assert.notDeepStrictEqual(plugin, undefined);
+  assert.deepStrictEqual(plugin?.metadata, { name: "test", version: "1.0.0" });
+});
+
+await registerTest("PluginManager - getPlugin returns undefined when disabled", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
   const plugin = manager.getPlugin("test");
-  assert.deepStrictEqual(plugin, TestPlugin);
+  assert.deepStrictEqual(plugin, undefined);
+});
+
+await registerTest("PluginManager - getPluginRaw returns plugin regardless of state", () => {
+  const manager = new PluginManager();
+  manager.register(TestPlugin);
+  const raw = manager.getPluginRaw("test");
+  assert.deepStrictEqual(raw, TestPlugin);
 });
 
 await registerTest("PluginManager - getPlugin returns undefined for missing", () => {
@@ -149,6 +165,7 @@ await registerTest("PluginManager - shutdown calls onDisable and onUnload with c
 
   const manager = new PluginManager();
   manager.register(ShutdownPlugin);
+  await manager.init();
   await manager.shutdown();
 
   assert.deepStrictEqual(callOrder, ["onDisable", "onUnload"]);
@@ -243,11 +260,13 @@ await registerTest("PluginManager - async hooks are awaited", async () => {
   assert.deepStrictEqual(order, ["setup", "onLoad"]);
 });
 
-await registerTest("PluginManager - getPlugin returns raw input", () => {
+await registerTest("PluginManager - getPlugin returns normalized instance after enable", () => {
   const manager = new PluginManager();
   manager.register(TestPlugin);
-  const raw = manager.getPlugin("test");
-  assert.deepStrictEqual(raw, TestPlugin);
+  manager.enable("test");
+  const plugin = manager.getPlugin<IPlugin>("test");
+  assert.notDeepStrictEqual(plugin, undefined);
+  assert.deepStrictEqual(plugin?.metadata, { name: "test", version: "1.0.0" });
 });
 
 await registerTest("PluginManager - register invalid plugin throws", () => {
@@ -256,4 +275,118 @@ await registerTest("PluginManager - register invalid plugin throws", () => {
     () => manager.register(null as unknown as PluginConst),
     Error,
   );
+});
+
+await registerTest("PluginManager - enable fires setup, onLoad, onEnable", async () => {
+  const callOrder: string[] = [];
+
+  class EnablePlugin implements IPlugin {
+    readonly metadata = { name: "enable-test", version: "1.0.0" };
+    setup(_ctx: PluginContext) { callOrder.push("setup"); }
+    onLoad(_ctx: PluginContext) { callOrder.push("onLoad"); }
+    onEnable(_ctx: PluginContext) { callOrder.push("onEnable"); }
+  }
+
+  const manager = new PluginManager();
+  manager.register(EnablePlugin);
+  manager.enable("enable-test");
+
+  assert.deepStrictEqual(callOrder, ["setup", "onLoad", "onEnable"]);
+  assert.deepStrictEqual(manager.getState("enable-test"), "enabled");
+});
+
+await registerTest("PluginManager - disable fires onDisable and onUnload", async () => {
+  const callOrder: string[] = [];
+
+  class DisablePlugin implements IPlugin {
+    readonly metadata = { name: "disable-test", version: "1.0.0" };
+    onDisable(_ctx: PluginContext) { callOrder.push("onDisable"); }
+    onUnload(_ctx: PluginContext) { callOrder.push("onUnload"); }
+  }
+
+  const manager = new PluginManager();
+  manager.register(DisablePlugin);
+  manager.enable("disable-test");
+  manager.disable("disable-test");
+
+  assert.deepStrictEqual(callOrder, ["onDisable", "onUnload"]);
+  assert.deepStrictEqual(manager.getState("disable-test"), "disabled");
+});
+
+await registerTest("PluginManager - unregister removes plugin", () => {
+  const manager = new PluginManager();
+  manager.register(TestPlugin);
+  manager.unregister("test");
+
+  assert.deepStrictEqual(manager.has("test"), false);
+  assert.deepStrictEqual(manager.getPlugins().length, 0);
+});
+
+await registerTest("PluginManager - unregister fires onDisable and onUnload for enabled plugin", () => {
+  const callOrder: string[] = [];
+
+  class UnregPlugin implements IPlugin {
+    readonly metadata = { name: "unreg", version: "1.0.0" };
+    onDisable(_ctx: PluginContext) { callOrder.push("onDisable"); }
+    onUnload(_ctx: PluginContext) { callOrder.push("onUnload"); }
+  }
+
+  const manager = new PluginManager();
+  manager.register(UnregPlugin);
+  manager.enable("unreg");
+  manager.unregister("unreg");
+
+  assert.deepStrictEqual(callOrder, ["onDisable", "onUnload"]);
+});
+
+await registerTest("PluginManager - getEnabledPlugins returns only enabled", () => {
+  class PluginA implements IPlugin {
+    readonly metadata = { name: "a", version: "1.0.0" };
+  }
+  class PluginB implements IPlugin {
+    readonly metadata = { name: "b", version: "1.0.0" };
+  }
+
+  const manager = new PluginManager();
+  manager.register(PluginA);
+  manager.register(PluginB);
+  manager.enable("a");
+
+  assert.deepStrictEqual(manager.getEnabledPlugins(), ["a"]);
+  assert.deepStrictEqual(manager.getDisabledPlugins(), ["b"]);
+});
+
+await registerTest("PluginManager - loadPlugin registers and enables", () => {
+  const manager = new PluginManager();
+  manager.loadPlugin(TestPlugin);
+
+  assert.deepStrictEqual(manager.has("test"), true);
+  assert.deepStrictEqual(manager.getState("test"), "enabled");
+  assert.notDeepStrictEqual(manager.getPlugin("test"), undefined);
+});
+
+await registerTest("PluginManager - getPlugin returns undefined for disabled plugin", () => {
+  const manager = new PluginManager();
+  manager.register(TestPlugin);
+
+  assert.deepStrictEqual(manager.getPlugin("test"), undefined);
+  assert.deepStrictEqual(manager.getState("test"), "disabled");
+});
+
+await registerTest("PluginManager - init enables all registered plugins", async () => {
+  const manager = new PluginManager();
+  manager.register(TestPlugin);
+  manager.register(MinimalPlugin);
+  await manager.init();
+
+  assert.deepStrictEqual(manager.getState("test"), "enabled");
+  assert.deepStrictEqual(manager.getState("minimal"), "enabled");
+  assert.deepStrictEqual(manager.getEnabledPlugins().length, 2);
+});
+
+await registerTest("PluginManager - register with path stores path", () => {
+  const manager = new PluginManager();
+  manager.register(TestPlugin, "./custom/path.ts");
+
+  assert.deepStrictEqual(manager.getPath("test"), "./custom/path.ts");
 });

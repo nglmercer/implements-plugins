@@ -5,11 +5,14 @@ import type {
   PluginInput,
   PluginManagerOptions,
 } from "./types.ts";
+import { PluginState } from "./types.ts";
 import { validatePlugin } from "./validation.ts";
 
 interface PluginEntry {
   plugin: PluginConst;
   raw: PluginInput;
+  state: PluginState;
+  path?: string;
 }
 
 export class PluginManager {
@@ -25,10 +28,13 @@ export class PluginManager {
       getPlugins: (): string[] => {
         return this.getPlugins();
       },
+      getManager: () => {
+        return this;
+      },
     };
   }
 
-  register(plugin: PluginInput): void {
+  register(plugin: PluginInput, path?: string): void {
     validatePlugin(plugin);
 
     const metadata = this.getMetadata(plugin);
@@ -37,10 +43,55 @@ export class PluginManager {
     }
 
     const normalized = this.normalize(plugin);
-    this.plugins.set(metadata.name, { plugin: normalized, raw: plugin });
+    this.plugins.set(metadata.name, { plugin: normalized, raw: plugin, state: PluginState.DISABLED, path });
+  }
+
+  unregister(name: string): void {
+    const entry = this.plugins.get(name);
+    if (!entry) {
+      throw new Error(`Plugin "${name}" not found`);
+    }
+    if (entry.state === PluginState.ENABLED) {
+      const p = entry.plugin;
+      if (typeof p.onDisable === "function") p.onDisable(this.context);
+      if (typeof p.onUnload === "function") p.onUnload(this.context);
+    }
+    this.plugins.delete(name);
+  }
+
+  enable(name: string): void {
+    const entry = this.plugins.get(name);
+    if (!entry) throw new Error(`Plugin "${name}" not found`);
+    if (entry.state === PluginState.ENABLED) return;
+    const p = entry.plugin;
+    if (typeof p.setup === "function") p.setup(this.context);
+    if (typeof p.onLoad === "function") p.onLoad(this.context);
+    if (typeof p.onEnable === "function") p.onEnable(this.context);
+    entry.state = PluginState.ENABLED;
+  }
+
+  disable(name: string): void {
+    const entry = this.plugins.get(name);
+    if (!entry) throw new Error(`Plugin "${name}" not found`);
+    if (entry.state === PluginState.DISABLED) return;
+    const p = entry.plugin;
+    if (typeof p.onDisable === "function") p.onDisable(this.context);
+    if (typeof p.onUnload === "function") p.onUnload(this.context);
+    entry.state = PluginState.DISABLED;
+  }
+
+  loadPlugin(plugin: PluginInput, path?: string): void {
+    this.register(plugin, path);
+    this.enable(this.getMetadata(plugin).name);
   }
 
   getPlugin<T = unknown>(name: string): T | undefined {
+    const entry = this.plugins.get(name);
+    if (!entry || entry.state !== PluginState.ENABLED) return undefined;
+    return entry.plugin as T;
+  }
+
+  getPluginRaw<T = unknown>(name: string): T | undefined {
     const entry = this.plugins.get(name);
     return entry ? (entry.raw as T) : undefined;
   }
@@ -57,18 +108,22 @@ export class PluginManager {
       if (typeof p.onLoad === "function") {
         await p.onLoad(this.context);
       }
+      entry.state = PluginState.ENABLED;
     }
   }
 
   async shutdown(): Promise<void> {
     for (const [, entry] of this.plugins) {
       const p = entry.plugin;
-      if (typeof p.onDisable === "function") {
-        await p.onDisable(this.context);
+      if (entry.state === PluginState.ENABLED) {
+        if (typeof p.onDisable === "function") {
+          await p.onDisable(this.context);
+        }
       }
       if (typeof p.onUnload === "function") {
         await p.onUnload(this.context);
       }
+      entry.state = PluginState.DISABLED;
     }
     this.plugins.clear();
     this.initialized = false;
@@ -78,8 +133,32 @@ export class PluginManager {
     return [...this.plugins.keys()];
   }
 
+  getEnabledPlugins(): string[] {
+    return [...this.plugins.entries()]
+      .filter(([, e]) => e.state === PluginState.ENABLED)
+      .map(([name]) => name);
+  }
+
+  getDisabledPlugins(): string[] {
+    return [...this.plugins.entries()]
+      .filter(([, e]) => e.state === PluginState.DISABLED)
+      .map(([name]) => name);
+  }
+
+  getState(name: string): PluginState | undefined {
+    return this.plugins.get(name)?.state;
+  }
+
+  getPath(name: string): string | undefined {
+    return this.plugins.get(name)?.path;
+  }
+
   has(name: string): boolean {
     return this.plugins.has(name);
+  }
+
+  isInitialized(): boolean {
+    return this.initialized;
   }
 
   getContext(): PluginContext {

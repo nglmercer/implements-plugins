@@ -6,6 +6,7 @@ export {
   loadPluginsFromDir,
   loadPluginsFromManifest,
 } from "./src/loader.ts";
+export { PluginState } from "./src/types.ts";
 export type {
   IPlugin,
   PluginConst,
