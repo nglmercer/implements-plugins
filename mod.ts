@@ -5,6 +5,11 @@ export {
   loadPluginFromUrl,
   loadPluginsFromDir,
   loadPluginsFromManifest,
+  watchPluginsFromDir,
+} from "./src/loader.ts";
+export type {
+  PluginWatcher,
+  PluginWatchHandlers,
 } from "./src/loader.ts";
 export { PluginState } from "./src/types.ts";
 export type {

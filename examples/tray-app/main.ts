@@ -1,4 +1,4 @@
-import { PluginManager, loadPluginsFromDir } from "../../mod.ts";
+import { PluginManager, loadPluginsFromDir, watchPluginsFromDir } from "../../mod.ts";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { runTray } from "./tray.ts";
@@ -180,8 +180,43 @@ async function main(): Promise<void> {
      bridgeEmitterToBus(legacyEmitter, bus);
    }
 
-  autoWirePlugin(manager);
-  await runTray(manager);
+   autoWirePlugin(manager);
+
+   // Hot-reload: watch plugins directory for changes
+   const pluginWatcher = watchPluginsFromDir(dirPath, {
+     onAdd(plugin, fileName, name) {
+       console.log(`[hot-reload] new plugin: ${name} (${fileName})`);
+       if (manager.has(name)) manager.unregister(name);
+       manager.register(plugin, fileName);
+       manager.enable(name);
+     },
+     onChange(plugin, fileName, name) {
+       console.log(`[hot-reload] changed plugin: ${name} (${fileName})`);
+       if (manager.has(name)) manager.unregister(name);
+       manager.register(plugin, fileName);
+       manager.enable(name);
+     },
+     onRemove(fileName, name) {
+       if (name) {
+         console.log(`[hot-reload] removed plugin: ${name} (${fileName})`);
+         manager.unregister(name);
+       }
+     },
+     onError(err, fileName) {
+       console.error(`[hot-reload] error loading ${fileName}:`, err.message);
+     },
+   }, { debounce: 150 });
+
+   // Clean up watcher on exit
+   const shutdown = () => {
+     pluginWatcher.close();
+     manager.shutdown();
+     process.exit(0);
+   };
+   process.on("SIGINT", shutdown);
+   process.on("SIGTERM", shutdown);
+
+   await runTray(manager);
 }
 
 main();
