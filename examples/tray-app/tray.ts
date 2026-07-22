@@ -19,14 +19,35 @@ import path from "node:path";
 // Icon
 // ---------------------------------------------------------------------------
 
-function createIcon(r: number, g: number, b: number, size = 32): Icon {
+type Color = [r: number, g: number, b: number];
+
+function createIcon(
+  color1: Color,
+  color2: Color,
+  size = 32
+): Icon {
   const data = Buffer.alloc(size * size * 4);
-  for (let i = 0; i < size * size; i++) {
-    data[i * 4 + 0] = r;
-    data[i * 4 + 1] = g;
-    data[i * 4 + 2] = b;
-    data[i * 4 + 3] = 255;
+  const [r1, g1, b1] = color1;
+  const [r2, g2, b2] = color2;
+
+  for (let y = 0; y < size; y++) {
+    // Normalized position from 0.0 (top) to 1.0 (bottom)
+    const t = y / (size - 1 || 1);
+
+    // Interpolate colors
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+
+    for (let x = 0; x < size; x++) {
+      const idx = (y * size + x) * 4;
+      data[idx + 0] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 255; // Alpha
+    }
   }
+
   return Icon.fromRgba(data, size, size);
 }
 
@@ -96,7 +117,7 @@ function rebuildMenu(): void {
   if (tray) {
     tray.setVisible(false);
     tray = new TrayIconBuilder()
-      .withIcon(createIcon(80, 160, 240))
+      .withIcon(createIcon([0, 128, 255], [128, 0, 255], 32))
       .withTitle("Plugins")
       .withTooltip(tooltip())
       .withMenu(menu)
@@ -203,7 +224,7 @@ export async function runTray(mgr: PluginManager): Promise<void> {
   menu = buildMenu();
 
   tray = new TrayIconBuilder()
-    .withIcon(createIcon(80, 160, 240))
+    .withIcon(createIcon([0, 128, 255], [128, 0, 255], 32))
     .withTitle("Plugins")
     .withTooltip(tooltip())
     .withMenu(menu)
