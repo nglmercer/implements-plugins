@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run main.ts"
+    "dev": "bun run main.ts",
+    "build": "bun run build.ts"
   },
   "dependencies": {
     "tray-icon-node": "^0.1.2",
