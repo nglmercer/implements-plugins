@@ -34,7 +34,7 @@ class ClockPlugin implements IPlugin {
 
   onDisable(_ctx: PluginContext): void {
     //    console.log("hello")
-    //
+
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;

@@ -1,7 +1,7 @@
 import type { PluginInput } from "./types.ts";
 import { validatePlugin } from "./validation.ts";
 import { pathToFileURL } from "node:url";
-import { readdir } from "node:fs/promises";
+import { readdir, readFile, writeFile, rm } from "node:fs/promises";
 import { watch, existsSync } from "node:fs";
 import path from "node:path";
 
@@ -122,8 +122,11 @@ function getPluginName(plugin: PluginInput): string | undefined {
     : undefined;
 }
 
+const HOTRELOAD_PREFIX = ".hotreload-";
+
 function isPluginFile(name: string | null): name is string {
   if (!name) return false;
+  if (name.startsWith(HOTRELOAD_PREFIX)) return false;
   return DEFAULT_EXTENSIONS.has(path.extname(name));
 }
 
@@ -142,17 +145,26 @@ export function watchPluginsFromDir(
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   let paused = false;
   let watcher: ReturnType<typeof watch> | null = null;
+  let reloadCounter = 0;
 
   async function loadPlugin(
     fileName: string,
   ): Promise<{ plugin: PluginInput } | { error: Error } | "missing"> {
     const filePath = path.join(dirPath, fileName);
-    const fileUrl = pathToFileURL(filePath).href;
     try {
-      const mod = await import(fileUrl + "?t=" + Date.now());
-      const plugin = mod.default ?? mod.plugin ?? mod;
-      validatePlugin(plugin as PluginInput);
-      return { plugin: plugin as PluginInput };
+      const source = await readFile(filePath, "utf-8");
+      const uniqueName = `${HOTRELOAD_PREFIX}${reloadCounter++}-${fileName}`;
+      const tempPath = path.join(dirPath, uniqueName);
+      await writeFile(tempPath, source);
+      try {
+        const tempUrl = pathToFileURL(tempPath).href;
+        const mod = await import(tempUrl);
+        const plugin = mod.default ?? mod.plugin ?? mod;
+        validatePlugin(plugin as PluginInput);
+        return { plugin: plugin as PluginInput };
+      } finally {
+        await rm(tempPath, { force: true });
+      }
     } catch (err) {
       if (existsSync(filePath)) {
         // File exists but failed to load → error
