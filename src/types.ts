@@ -4,10 +4,11 @@ export interface PluginMetadata {
   dependencies?: string[];
 }
 
-export enum PluginState {
-  DISABLED = "disabled",
-  ENABLED = "enabled",
+export const PluginState = {
+  DISABLED: "disabled",
+  ENABLED: "enabled",
 }
+export type PluginState = typeof PluginState[keyof typeof PluginState];
 
 export interface PluginContext {
   getPlugin<T = unknown>(name: string): T | undefined;

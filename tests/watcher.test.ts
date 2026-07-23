@@ -50,7 +50,7 @@ interface WatcherEvent {
   error?: Error;
 }
 
-async function collectEvents(
+/* async function collectEvents(
   watcher: ReturnType<typeof watchPluginsFromDir>,
   dir: string,
   action: () => Promise<void>,
@@ -79,7 +79,7 @@ async function collectEvents(
     clearTimeout(timer);
     reject(new Error("Use individual test setup instead"));
   });
-}
+} */
 
 async function registerTest(name: string, fn: () => void | Promise<void>) {
   if (typeof Deno !== "undefined" && typeof Deno.test === "function") {
